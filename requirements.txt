@@ -1,0 +1,5 @@
+PyQt6>=6.0.0
+pandas>=2.0.0
+pyyaml>=6.0
+chardet>=5.0.0
+pyinstaller>=6.0.0
