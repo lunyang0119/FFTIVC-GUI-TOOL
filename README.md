@@ -42,9 +42,7 @@ pip install -r requirements.txt
 ## 사용 방법
 
 ### 1. 프로그램 실행
-```bash
-python main.py
-```
+releases에서 다운받아 주세요.
 
 ### 2. 외부 도구 경로 설정
 첫 실행 시 메뉴에서 설정 → FF16Tools 경로 설정 및 ffttic-nxdtext 경로를 설정하세요.
@@ -90,13 +88,6 @@ Tag,FileName,EntryID,OriginalText,Translation
 - **OriginalText**: 원문
 - **Translation**: 번역문 (여기에 번역 입력)
 
-## 중요 사항
-
-1. **NXD 파일 변환**: 절대 FF16Tools로 NXD를 변환하지 마세요! ffttic-nxdtext만 사용하세요.
-2. **원본 NXD 보존**: JSON → NXD 변환 시 원본 NXD 파일이 필요하므로 보존하세요.
-3. **백업**: 작업 전 항상 원본 파일을 백업하세요.
-4. **문자 인코딩**: CSV 파일은 UTF-8 with BOM으로 저장됩니다 (Excel 호환).
-
 ## 프로젝트 구조
 
 ```
@@ -126,30 +117,6 @@ fftivc_allinone_tool/
 │   └── logger.py         # 로깅
 │
 └── logs/                 # 로그 파일
-```
-
-## 개발 현황
-
-### Phase 1: 기본 구조 ✅ 완료
-- [x] 프로젝트 디렉토리 구조 생성
-- [x] PyQt6 메인 윈도우 구현
-- [x] 4개 탭 레이아웃 구현
-- [x] 설정 관리 시스템 구현
-- [x] 기본 로깅 시스템 구현
-
-### Phase 2: 핵심 기능 ✅ 완료
-- [x] FF16Tools 래퍼 클래스 구현
-- [x] ffttic-nxdtext 래퍼 클래스 구현
-- [x] PAC 언팩/팩 기능 구현
-- [x] JSON/YAML ↔ CSV 변환 기능 구현
-- [x] CSV 검증 및 일괄 치환 기능
-- [x] 번역 적용 및 재팩킹 기능
-
-### Phase 3: TODO
-- [ ] 탭별 실제 로직 연결
-- [ ] 프로그레스 바 및 실시간 로그 출력
-- [ ] 에러 처리 개선
-- [ ] UI/UX 개선
 
 ## 라이선스
 
@@ -159,8 +126,4 @@ MIT License
 
 이슈 발생 시 GitHub Issues에 등록해주세요.
 
-## 참고
-
-- FF16Tools: https://github.com/Nenkai/FF16Tools
-- ffttic-nxdtext: 별도 제공
 
