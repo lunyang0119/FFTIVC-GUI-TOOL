@@ -39,13 +39,13 @@ FF16Tools 실행을 위해 **.NET 9.0 Runtime**이 필요합니다.
 
 FFT_Translation_Tool/
 ├── ff16tools/  **폴더 이름을 ff16tools로 바꿔주셔야합니다**
-│
+
 │   ├── FF16Tools.CLI.exe
-│
+
 │   ├── # 내용물
-│
+
 ├── fftic_nxdtext.exe
-│
+
 ├── fftivc_allinone.exe
 
 ## 사용 방법
@@ -97,6 +97,7 @@ MIT License
 ## 문의
 
 이슈 발생 시 GitHub Issues에 등록해주세요.
+
 
 
 
