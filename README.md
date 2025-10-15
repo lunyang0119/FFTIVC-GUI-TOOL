@@ -1,4 +1,4 @@
-# FFT/FF16 번역 도구 올인원 GUI 프로그램
+# FFTIVC 번역 도구 올인원 GUI 프로그램
 
 파이썬을 모르는 일반 사용자도 FFT/FF16 게임 파일의 번역 작업을 쉽게 수행할 수 있도록 하는 GUI 기반 올인원 도구입니다.
 아직 베타버전으로, 오류가 있다면 Issues나 nie600s@naver.com으로 메일주시면 감사하겠습니다.
@@ -31,11 +31,11 @@ FF16Tools 실행을 위해 **.NET 9.0 Runtime**이 필요합니다.
 다음 도구들을 다운로드하여 프로그램 폴더에 배치하세요:
 
 - **FF16Tools**: https://github.com/Nenkai/FF16Tools
-  - `ff16tools/` 폴더에 배치 (자동 탐지됨)
+  - `ff16tools/` 폴더
 - **ffttic-nxdtext**: https://github.com/mmatyas/ffttic-nxdtext/releases
-  - 프로그램 루트 폴더에 배치 (자동 탐지됨)
- 
-  최종적으로 파일 형태는 아래와 같아야합니다.
+  - 프로그램 루트 폴더에 배치
+  
+  최종 파일 형태는 아래와 같아야합니다.
 
 FFT_Translation_Tool/
 
@@ -98,6 +98,7 @@ MIT License
 ## 문의
 
 이슈 발생 시 GitHub Issues에 등록해주세요.
+
 
 
 
