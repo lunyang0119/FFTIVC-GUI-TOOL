@@ -38,13 +38,20 @@ class FF16ToolsWrapper:
         self.logger.info(f"FF16Tools 실행: {' '.join(cmd)}")
 
         try:
+            # Windows에서 CMD 창 숨기기
+            import sys
+            creationflags = 0
+            if sys.platform == 'win32':
+                creationflags = subprocess.CREATE_NO_WINDOW
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 encoding='utf-8',
-                errors='ignore'
+                errors='ignore',
+                creationflags=creationflags
             )
 
             # 실시간 출력
@@ -116,19 +123,35 @@ class FF16ToolsWrapper:
         args = ['pack', '-i', str(input_folder), '-o', str(output_pac), '-g', game]
         return self.run_command(args) == 0
 
-    def pzd_to_yaml(self, pzd_file, game='fft'):
+    def pzd_to_yaml(self, pzd_file, game='fft', callback=None):
         """
         PZD 파일을 YAML로 변환
 
         Args:
             pzd_file: PZD 파일 경로
-            (pzd to yaml은 game type을 받지 않음)
+            game: 사용 안 함 (pzd-to-yaml은 game type을 받지 않음)
+            callback: 진행 상황 콜백
 
         Returns:
             성공 여부
         """
+        pzd_path = Path(pzd_file)
+        expected_yaml = pzd_path.with_suffix('.yaml')
+
+        # 기존 YAML 파일 존재 확인
+        if expected_yaml.exists():
+            self.logger.debug(f"기존 YAML 파일 삭제: {expected_yaml}")
+            expected_yaml.unlink()
+
         args = ['pzd-conv', '-i', str(pzd_file)]
-        return self.run_command(args) == 0
+        result = self.run_command(args, callback) == 0
+
+        # 변환 후 YAML 파일 생성 확인
+        if result and not expected_yaml.exists():
+            self.logger.error(f"PZD 변환 성공했으나 YAML 파일이 생성되지 않음: {expected_yaml}")
+            return False
+
+        return result
 
     def yaml_to_pzd(self, yaml_file, game='fft'):
         """

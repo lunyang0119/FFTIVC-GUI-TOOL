@@ -38,13 +38,20 @@ class FFTTicNXDTextWrapper:
         self.logger.info(f"ffttic-nxdtext 실행: {' '.join(cmd)}")
 
         try:
+            # Windows에서 CMD 창 숨기기
+            import sys
+            creationflags = 0
+            if sys.platform == 'win32':
+                creationflags = subprocess.CREATE_NO_WINDOW
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 encoding='utf-8',
-                errors='ignore'
+                errors='ignore',
+                creationflags=creationflags
             )
 
             # 실시간 출력
