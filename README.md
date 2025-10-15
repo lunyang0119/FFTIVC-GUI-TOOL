@@ -6,6 +6,8 @@ readme는 아직 업데이트 중입니다.
 
 또한 이 툴은 불완전하기 때문에 꼭 **원본 파일을 백업한 후 사용해주세요!**
 
+**오류가 많습니다! 감안하고 사용해주세요! 오류제보는 위에 적혀진 곳으로 받고 있습니다.**
+
 ## 주요 기능
 
 - PAC 파일 언팩/팩
@@ -76,19 +78,11 @@ releases에서 다운 받아 주세요.
 
 ## CSV 파일 형식
 
-생성되는 CSV 파일은 다음과 같은 형식을 가집니다:
-
-```csv
-Tag,FileName,EntryID,OriginalText,Translation
-<text1>,movie0020.ja.yaml,357467,"太陽と聖印に護られた 双頭の獅子が治める国\n—イヴァリース",""
-<text2>,achievement.ja.json,achievement/1/6,"<center>역사의 진실을 모두 탐구함으로써...</center>",""
-```
-
 - **Tag**: 자동 생성되는 텍스트 태그. 태그에 따라 어떤 파일에 적용될지 달라집니다.
 - **FileName**: 원본 파일명
 - **EntryID**: 엔트리 ID (PZD는 정수, NXD는 문자열)
 - **OriginalText**: 원문
-- **Translation**: 번역문 (여기에 번역 입력)
+- **Translation**: 번역문.
 
 ## 라이선스
 
@@ -97,6 +91,7 @@ MIT License
 ## 문의
 
 이슈 발생 시 GitHub Issues에 등록해주세요.
+
 
 
 
