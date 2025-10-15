@@ -159,10 +159,10 @@ class FF16ToolsWrapper:
 
         Args:
             yaml_file: YAML 파일 경로
-            game: 게임 종류 (fft 또는 ff16)
+            yaml to pzd는 game을 받지 않음.
 
         Returns:
             성공 여부
         """
-        args = ['pzd-conv', '-i', str(yaml_file), '-g', game]
+        args = ['pzd-conv', '-i', str(yaml_file)]
         return self.run_command(args) == 0

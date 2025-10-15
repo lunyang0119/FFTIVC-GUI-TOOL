@@ -162,3 +162,33 @@ class CSVValidator:
                 summary += f"  - {issue_type}: {count}개\n"
 
         return summary
+
+    def get_detailed_validation_text(self, results):
+        """
+        검증 결과를 상세 텍스트로 생성
+
+        Args:
+            results: 검증 결과 리스트
+
+        Returns:
+            상세 결과 문자열
+        """
+        if not results:
+            return "문제가 발견되지 않았습니다."
+
+        text = f"총 {len(results)}개의 문제가 발견되었습니다.\n\n"
+        text += "=" * 80 + "\n\n"
+
+        current_file = None
+        for result in results:
+            # 파일이 바뀔 때마다 파일명 표시
+            if current_file != result['file']:
+                current_file = result['file']
+                text += f"\n[파일: {current_file}]\n"
+                text += "-" * 80 + "\n"
+
+            # 행별 문제 표시
+            text += f"  행 {result['row']}: {result['issues']}\n"
+            text += f"    내용: {result['text'][:80]}...\n\n"
+
+        return text

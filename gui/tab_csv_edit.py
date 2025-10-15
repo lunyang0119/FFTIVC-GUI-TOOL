@@ -27,9 +27,8 @@ class ValidationWorker(QThread):
             self.log_signal.emit("일본어 문자 검사 시작...")
 
             results = validator.validate_csv(self.csv_folder)
-            summary = validator.get_validation_summary(results)
 
-            self.log_signal.emit(summary)
+            self.log_signal.emit("검사 완료")
             self.finished_signal.emit(True, results)
 
         except Exception as e:
@@ -106,12 +105,19 @@ class TabCSVEdit(QWidget):
         self.btn_validate.clicked.connect(self.validate_csv)
         layout_validate.addWidget(self.btn_validate)
 
-        # 검사 결과
-        self.validate_result = QTextEdit()
-        self.validate_result.setReadOnly(True)
-        self.validate_result.setMaximumHeight(150)
-        layout_validate.addWidget(QLabel("검사 결과:"))
-        layout_validate.addWidget(self.validate_result)
+        # 검사 결과 (요약)
+        self.validate_summary = QTextEdit()
+        self.validate_summary.setReadOnly(True)
+        self.validate_summary.setMaximumHeight(100)
+        layout_validate.addWidget(QLabel("검사 요약:"))
+        layout_validate.addWidget(self.validate_summary)
+
+        # 검사 결과 (상세)
+        self.validate_detail = QTextEdit()
+        self.validate_detail.setReadOnly(True)
+        self.validate_detail.setMaximumHeight(300)
+        layout_validate.addWidget(QLabel("상세 결과 (파일명과 행 번호):"))
+        layout_validate.addWidget(self.validate_detail)
 
         # 결과 저장 버튼
         self.btn_save_result = QPushButton("결과를 TXT 파일로 저장")
@@ -203,7 +209,8 @@ class TabCSVEdit(QWidget):
 
         # UI 상태 변경
         self.btn_validate.setEnabled(False)
-        self.validate_result.clear()
+        self.validate_summary.clear()
+        self.validate_detail.clear()
 
         # 워커 스레드 생성 및 시작
         self.validation_worker = ValidationWorker(csv_folder)
@@ -221,9 +228,20 @@ class TabCSVEdit(QWidget):
         self.validation_results = results
 
         if success:
+            from core.validator import CSVValidator
+            validator = CSVValidator()
+
+            # 요약 표시
+            summary = validator.get_validation_summary(results)
+            self.validate_summary.setPlainText(summary)
+
+            # 상세 결과 표시
             if len(results) > 0:
-                QMessageBox.warning(self, "검증 완료", f"{len(results)}개의 문제가 발견되었습니다.")
+                detail = validator.get_detailed_validation_text(results)
+                self.validate_detail.setPlainText(detail)
+                QMessageBox.warning(self, "검증 완료", f"{len(results)}개의 문제가 발견되었습니다.\n상세 결과를 확인하세요.")
             else:
+                self.validate_detail.setPlainText("문제가 발견되지 않았습니다.")
                 QMessageBox.information(self, "검증 완료", "문제가 발견되지 않았습니다!")
         else:
             QMessageBox.critical(self, "오류", "검증 중 오류가 발생했습니다.")
@@ -309,7 +327,7 @@ class TabCSVEdit(QWidget):
 
     def add_validate_log(self, message):
         """검증 로그 추가"""
-        self.validate_result.append(message)
+        self.validate_summary.append(message)
 
     def add_replace_log(self, message):
         """치환 로그 추가"""

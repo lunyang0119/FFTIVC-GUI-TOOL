@@ -142,6 +142,7 @@ class PACHandler:
 
     def apply_translation_and_pack(self, csv_folder, source_folder, output_pac,
                                    delete_yaml_json=False, delete_other=False,
+                                   apply_yaml=True, apply_json=True, skip_packing=False,
                                    game='fft', callback=None):
         """
         번역 적용 및 PAC 팩킹
@@ -152,6 +153,9 @@ class PACHandler:
             output_pac: 출력 PAC 파일 경로
             delete_yaml_json: YAML/JSON 삭제 여부
             delete_other: 기타 파일 삭제 여부
+            apply_yaml: YAML 파일에 CSV 적용 여부
+            apply_json: JSON 파일에 CSV 적용 여부
+            skip_packing: 패킹 건너뛰기 여부
             game: 게임 종류
             callback: 진행 상황 콜백 함수
 
@@ -162,42 +166,67 @@ class PACHandler:
             from core.csv_handler import CSVHandler
             csv_handler = CSVHandler()
 
+            # 총 단계 수 계산
+            total_steps = 5 if not skip_packing else 4
+            current_step = 1
+
             # 1. CSV → YAML/JSON 적용
             if callback:
-                callback("1/5: CSV를 YAML/JSON에 적용 중...")
+                callback(f"{current_step}/{total_steps}: CSV를 YAML/JSON에 적용 중...")
 
             csv_files = list(Path(csv_folder).glob('*.csv'))
             for csv_file in csv_files:
                 # JSON 파일 처리
-                csv_handler.apply_csv_to_json(csv_file, source_folder)
+                if apply_json:
+                    csv_handler.apply_csv_to_json(csv_file, source_folder)
                 # YAML 파일 처리
-                csv_handler.apply_csv_to_yaml(csv_file, source_folder)
+                if apply_yaml:
+                    csv_handler.apply_csv_to_yaml(csv_file, source_folder)
 
             if callback:
-                callback("CSV 적용 완료")
+                applied_types = []
+                if apply_yaml:
+                    applied_types.append("YAML")
+                if apply_json:
+                    applied_types.append("JSON")
+                callback(f"CSV 적용 완료 (대상: {', '.join(applied_types)})")
+
+            current_step += 1
 
             # 2. YAML → PZD 변환
-            if callback:
-                callback("2/5: YAML을 PZD로 변환 중...")
+            if apply_yaml:
+                if callback:
+                    callback(f"{current_step}/{total_steps}: YAML을 PZD로 변환 중...")
 
-            yaml_count = self.converter.convert_yaml_to_pzd(source_folder)
+                yaml_count = self.converter.convert_yaml_to_pzd(source_folder)
 
-            if callback:
-                callback(f"YAML → PZD 변환 완료: {yaml_count}개")
+                if callback:
+                    callback(f"YAML → PZD 변환 완료: {yaml_count}개")
+            else:
+                if callback:
+                    callback(f"{current_step}/{total_steps}: YAML 변환 건너뛰기")
+
+            current_step += 1
 
             # 3. JSON → NXD 변환
-            if callback:
-                callback("3/5: JSON을 NXD로 변환 중...")
+            if apply_json:
+                if callback:
+                    callback(f"{current_step}/{total_steps}: JSON을 NXD로 변환 중...")
 
-            json_count = self.converter.convert_json_to_nxd(source_folder)
+                json_count = self.converter.convert_json_to_nxd(source_folder)
 
-            if callback:
-                callback(f"JSON → NXD 변환 완료: {json_count}개")
+                if callback:
+                    callback(f"JSON → NXD 변환 완료: {json_count}개")
+            else:
+                if callback:
+                    callback(f"{current_step}/{total_steps}: JSON 변환 건너뛰기")
+
+            current_step += 1
 
             # 4. 불필요한 파일 삭제
             if delete_yaml_json or delete_other:
                 if callback:
-                    callback("4/5: 불필요한 파일 삭제 중...")
+                    callback(f"{current_step}/{total_steps}: 불필요한 파일 삭제 중...")
 
                 self._cleanup_files(source_folder, delete_yaml_json, delete_other)
 
@@ -205,18 +234,25 @@ class PACHandler:
                     callback("파일 정리 완료")
             else:
                 if callback:
-                    callback("4/5: 파일 정리 건너뛰기")
+                    callback(f"{current_step}/{total_steps}: 파일 정리 건너뛰기")
+
+            current_step += 1
 
             # 5. PAC 팩킹
-            if callback:
-                callback("5/5: PAC 파일 팩킹 중...")
+            if not skip_packing:
+                if callback:
+                    callback(f"{current_step}/{total_steps}: PAC 파일 팩킹 중...")
 
-            if not self.pack(source_folder, output_pac, game, callback):
-                return False
+                if not self.pack(source_folder, output_pac, game, callback):
+                    return False
 
-            self.logger.info("번역 적용 및 팩킹 완료")
-            if callback:
-                callback("모든 작업 완료!")
+                self.logger.info("번역 적용 및 팩킹 완료")
+                if callback:
+                    callback("모든 작업 완료!")
+            else:
+                self.logger.info("번역 적용 완료 (패킹 건너뜀)")
+                if callback:
+                    callback("번역 적용 완료! (패킹은 건너뛰었습니다)")
 
             return True
 
