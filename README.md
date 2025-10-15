@@ -22,15 +22,12 @@ readme는 아직 업데이트 중입니다.
 
 ## 설치 방법
 
-### 1. Python 설치
-Python 3.10 이상이 필요합니다.
-
-### 2. ⚠️ .NET Runtime 설치 (중요!)
+### 1. ⚠️ .NET Runtime 설치 (중요!)
 FF16Tools 실행을 위해 **.NET 9.0 Runtime**이 필요합니다.
 
 **다운로드:** https://dotnet.microsoft.com/download/dotnet/9.0
 
-### 4. 외부 도구 준비
+### 2. 외부 도구 준비
 다음 도구들을 다운로드하여 프로그램 폴더에 배치하세요:
 
 - **FF16Tools**: https://github.com/Nenkai/FF16Tools
@@ -43,8 +40,11 @@ FF16Tools 실행을 위해 **.NET 9.0 Runtime**이 필요합니다.
 FFT_Translation_Tool/
 ├── ff16tools/  **폴더 이름을 ff16tools로 바꿔주셔야합니다**
 │   ├── FF16Tools.CLI.exe
+
 │   ├── # 내용물
+
 ├── fftic_nxdtext.exe
+
 ├── fftivc_allinone.exe
 
 ## 사용 방법
@@ -96,6 +96,7 @@ MIT License
 ## 문의
 
 이슈 발생 시 GitHub Issues에 등록해주세요.
+
 
 
 
