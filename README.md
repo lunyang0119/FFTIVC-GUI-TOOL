@@ -1,8 +1,10 @@
 # FFT/FF16 번역 도구 올인원 GUI 프로그램
 
 파이썬을 모르는 일반 사용자도 FFT/FF16 게임 파일의 번역 작업을 쉽게 수행할 수 있도록 하는 GUI 기반 올인원 도구입니다.
-아직 베타버전으로, 오류가 있다면 Issues나 nie600s@naver.com으로 메일주시면 감사합니다.
+아직 베타버전으로, 오류가 있다면 Issues나 nie600s@naver.com으로 메일주시면 감사하겠습니다.
 readme는 아직 업데이트 중입니다.
+
+또한 이 툴은 불완전하기 때문에 꼭 **원본 파일을 백업한 후 사용해주세요!**
 
 ## 주요 기능
 
@@ -33,7 +35,7 @@ FF16Tools 실행을 위해 **.NET 9.0 Runtime**이 필요합니다.
   최종적으로 파일 형태는 아래와 같아야합니다.
 
 FFT_Translation_Tool/
-├── ff16tools/  
+├── ff16tools/  **폴더 이름을 ff16tools로 바꿔주셔야합니다**
 │   ├── FF16Tools.CLI.exe
 │   ├── # 내용물
 ├── fftic_nxdtext.exe
@@ -82,41 +84,11 @@ Tag,FileName,EntryID,OriginalText,Translation
 <text2>,achievement.ja.json,achievement/1/6,"<center>역사의 진실을 모두 탐구함으로써...</center>",""
 ```
 
-- **Tag**: 자동 생성되는 텍스트 태그
+- **Tag**: 자동 생성되는 텍스트 태그. 태그에 따라 어떤 파일에 적용될지 달라집니다.
 - **FileName**: 원본 파일명
 - **EntryID**: 엔트리 ID (PZD는 정수, NXD는 문자열)
 - **OriginalText**: 원문
 - **Translation**: 번역문 (여기에 번역 입력)
-
-## 프로젝트 구조
-
-```
-fftivc_allinone_tool/
-├── main.py                 # 메인 실행 파일
-├── config.json            # 설정 파일
-├── requirements.txt       # 의존성
-├── README.md             # 이 문서
-│
-├── gui/                  # GUI 모듈
-│   ├── main_window.py    # 메인 창
-│   ├── tab_unpack.py     # 탭 1: PAC 변환
-│   ├── tab_to_csv.py     # 탭 2: CSV 변환
-│   ├── tab_csv_edit.py   # 탭 3: CSV 수정
-│   └── tab_apply.py      # 탭 4: 번역 적용
-│
-├── core/                 # 핵심 로직
-│   ├── config_manager.py # 설정 관리
-│   ├── ff16tools_wrapper.py # FF16Tools 래퍼
-│   ├── ffttic_wrapper.py # ffttic-nxdtext 래퍼
-│   ├── pac_handler.py    # PAC 처리
-│   ├── converter.py      # 파일 변환
-│   ├── csv_handler.py    # CSV 처리
-│   └── validator.py      # 검증
-│
-├── utils/                # 유틸리티
-│   └── logger.py         # 로깅
-│
-└── logs/                 # 로그 파일
 
 ## 라이선스
 
@@ -125,6 +97,7 @@ MIT License
 ## 문의
 
 이슈 발생 시 GitHub Issues에 등록해주세요.
+
 
 
 
