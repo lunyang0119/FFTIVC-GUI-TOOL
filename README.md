@@ -1,6 +1,8 @@
 # FFT/FF16 번역 도구 올인원 GUI 프로그램
 
 파이썬을 모르는 일반 사용자도 FFT/FF16 게임 파일의 번역 작업을 쉽게 수행할 수 있도록 하는 GUI 기반 올인원 도구입니다.
+아직 베타버전으로, 오류가 있다면 Issues나 nie600s@naver.com으로 메일주시면 감사합니다.
+readme는 아직 업데이트 중입니다.
 
 ## 주요 기능
 
@@ -20,17 +22,6 @@ FF16Tools 실행을 위해 **.NET 9.0 Runtime**이 필요합니다.
 
 **다운로드:** https://dotnet.microsoft.com/download/dotnet/9.0
 
-**설치 확인:**
-```bash
-dotnet --list-runtimes
-```
-출력에 `Microsoft.NETCore.App 9.0.x`가 있어야 합니다.
-
-### 3. Python 의존성 설치
-```bash
-pip install -r requirements.txt
-```
-
 ### 4. 외부 도구 준비
 다음 도구들을 다운로드하여 프로그램 폴더에 배치하세요:
 
@@ -38,11 +29,20 @@ pip install -r requirements.txt
   - `ff16tools/` 폴더에 배치 (자동 탐지됨)
 - **ffttic-nxdtext**: https://github.com/mmatyas/ffttic-nxdtext/releases
   - 프로그램 루트 폴더에 배치 (자동 탐지됨)
+ 
+  최종적으로 파일 형태는 아래와 같아야합니다.
+
+FFT_Translation_Tool/
+├── ff16tools/  
+│   ├── FF16Tools.CLI.exe
+│   ├── # 내용물
+├── fftic_nxdtext.exe
+├── fftivc_allinone.exe
 
 ## 사용 방법
 
 ### 1. 프로그램 실행
-releases에서 다운받아 주세요.
+releases에서 다운 받아 주세요.
 
 ### 2. 외부 도구 경로 설정
 첫 실행 시 메뉴에서 설정 → FF16Tools 경로 설정 및 ffttic-nxdtext 경로를 설정하세요.
@@ -62,7 +62,7 @@ releases에서 다운받아 주세요.
 4. 생성된 CSV 파일을 Excel 등으로 열어 번역 작업 수행
 
 #### 탭 3: CSV 수정
-1. CSV 파일 검증 (일본어 문자 검사)
+1. csv의 translation 열에 일본어 문자가 있는지 검사
 2. 필요시 일괄 문자 치환 수행
 
 #### 탭 4: 번역 적용
@@ -125,5 +125,6 @@ MIT License
 ## 문의
 
 이슈 발생 시 GitHub Issues에 등록해주세요.
+
 
 
