@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 - **FF16Tools**: https://github.com/Nenkai/FF16Tools
   - `ff16tools/` 폴더에 배치 (자동 탐지됨)
-- **ffttic-nxdtext**: 별도 제공
+- **ffttic-nxdtext**: https://github.com/mmatyas/ffttic-nxdtext/releases
   - 프로그램 루트 폴더에 배치 (자동 탐지됨)
 
 ## 사용 방법
@@ -163,3 +163,4 @@ MIT License
 
 - FF16Tools: https://github.com/Nenkai/FF16Tools
 - ffttic-nxdtext: 별도 제공
+
