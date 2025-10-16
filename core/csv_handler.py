@@ -1,6 +1,7 @@
 """
 CSV 처리 모듈
 """
+import csv
 import json
 import yaml
 import pandas as pd
@@ -192,114 +193,146 @@ class CSVHandler:
         except Exception as e:
             self.logger.error(f"CSV 파일 저장 실패 ({output_file}): {e}")
 
-    def apply_csv_to_json(self, csv_file, json_folder):
+    def load_all_translations(self, csv_folder):
         """
-        CSV의 번역을 JSON 파일에 적용
+        지정된 폴더 내의 모든 CSV 파일에서 번역 데이터를 로드합니다.
+        FileName과 EntryID를 키로 사용하여 번역문을 저장합니다.
+        EntryID는 JSON과 YAML 모두에 대응하기 위해 문자열로 저장됩니다.
 
         Args:
-            csv_file: CSV 파일 경로
-            json_folder: JSON 파일이 있는 폴더
+            csv_folder (str): CSV 파일이 있는 폴더 경로.
 
         Returns:
-            성공 여부
+            dict: {(filename, str(entry_id)): translation} 형태의 딕셔너리.
         """
-        try:
-            df = pd.read_csv(csv_file, encoding='utf-8-sig')
+        translations = {}
+        translated_count = 0
+        original_fallback_count = 0
 
-            # .json 확장자를 가진 파일만 필터링
-            json_rows = df[df['FileName'].str.endswith('.json', na=False)]
+        csv_files = list(Path(csv_folder).rglob('*.csv'))
+        if not csv_files:
+            self.logger.warning(f"CSV 폴더 '{csv_folder}'에서 CSV 파일을 찾을 수 없습니다.")
+            return translations
 
-            if json_rows.empty:
-                self.logger.info(f"CSV 파일에 JSON 대상 항목이 없음: {csv_file}")
-                return True
+        self.logger.info(f"총 {len(csv_files)}개의 CSV 파일에서 데이터 로딩 시작...")
 
-            # 파일별로 그룹화
-            for source_file, group in json_rows.groupby('FileName'):
-                json_path = self._find_file_recursive(json_folder, source_file)
+        for csv_file in csv_files:
+            try:
+                with open(csv_file, 'r', encoding='utf-8-sig') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        filename = row.get('FileName', '').strip()
+                        entry_id = row.get('EntryID', '').strip()
+                        translation = row.get('Translation', '')
+                        original_text = row.get('OriginalText', '')
 
-                if not json_path:
-                    self.logger.warning(f"파일을 찾을 수 없음: {source_file}")
-                    continue
+                        if filename and entry_id:
+                            # 번역문이 있으면 번역문 사용
+                            if translation and str(translation).strip():
+                                translations[(filename, str(entry_id))] = str(translation)
+                                translated_count += 1
+                            # 번역문이 없으면 원문 사용 (폴백)
+                            else:
+                                translations[(filename, str(entry_id))] = str(original_text)
+                                original_fallback_count += 1
+                        else:
+                            self.logger.warning(f"CSV 파일 '{csv_file.name}'에서 필수 컬럼(FileName, EntryID, Translation) 중 누락된 항목이 있습니다: {row}")
 
-                # JSON 파일 로드
-                with open(json_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
+            except Exception as e:
+                self.logger.error(f"CSV 파일 로드 중 오류 발생 ({csv_file}): {e}")
 
-                # 번역 적용
-                for _, row in group.iterrows():
-                    entry_id = row['EntryID']
-                    translated = row['Translation']
+        self.logger.info(f"데이터 로딩 완료: 번역된 항목 {translated_count}개, 원문으로 대체된 항목 {original_fallback_count}개.")
+        return translations
 
-                    if pd.notna(translated) and str(translated).strip():
-                        data[entry_id] = str(translated)
-
-                # JSON 저장
-                with open(json_path, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-
-                self.logger.info(f"JSON 파일 업데이트 완료: {json_path}")
-
-            return True
-
-        except Exception as e:
-            self.logger.error(f"CSV → JSON 적용 실패: {e}")
-            return False
-
-    def apply_csv_to_yaml(self, csv_file, yaml_folder):
+    def apply_translations_to_folder(self, source_folder, translations, apply_yaml=True, apply_json=True):
         """
-        CSV의 번역을 YAML 파일에 적용
+        통합된 번역 데이터를 지정된 폴더 내의 YAML 및 JSON 파일에 적용합니다.
 
         Args:
-            csv_file: CSV 파일 경로
-            yaml_folder: YAML 파일이 있는 폴더
+            source_folder (str): YAML/JSON 파일이 있는 폴더 경로.
+            translations (dict): {(filename, str(entry_id)): translation} 형태의 번역 딕셔너리.
+            apply_yaml (bool): YAML 파일에 번역을 적용할지 여부.
+            apply_json (bool): JSON 파일에 번역을 적용할지 여부.
 
         Returns:
-            성공 여부
+            int: 총 업데이트된 항목 수.
         """
-        try:
-            df = pd.read_csv(csv_file, encoding='utf-8-sig')
+        source_path = Path(source_folder)
+        updated_entries_count = 0
 
-            # .yaml 확장자를 가진 파일만 필터링
-            yaml_rows = df[df['FileName'].str.endswith('.yaml', na=False)]
+        if not source_path.exists():
+            self.logger.error(f"원본 폴더를 찾을 수 없습니다: {source_folder}")
+            return 0
 
-            if yaml_rows.empty:
-                self.logger.info(f"CSV 파일에 YAML 대상 항목이 없음: {csv_file}")
-                return True
+        # YAML 파일에 번역 적용
+        if apply_yaml:
+            yaml_files = list(source_path.rglob('*.yaml'))
+            self.logger.info(f"총 {len(yaml_files)}개의 YAML 파일에 번역 적용 시도...")
+            for yaml_file_path in yaml_files:
+                try:
+                    with open(yaml_file_path, 'r', encoding='utf-8') as f:
+                        data = yaml.safe_load(f)
 
-            # 파일별로 그룹화
-            for source_file, group in yaml_rows.groupby('FileName'):
-                yaml_path = self._find_file_recursive(yaml_folder, source_file)
+                    if not isinstance(data, list):
+                        self.logger.warning(f"YAML 파일 '{yaml_file_path.name}'의 형식이 예상과 다릅니다 (리스트 아님). 건너뜁니다.")
+                        continue
 
-                if not yaml_path:
-                    self.logger.warning(f"파일을 찾을 수 없음: {source_file}")
-                    continue
+                    filename = yaml_file_path.name
+                    file_updated_count = 0
+                    for entry in data:
+                        if isinstance(entry, dict) and 'Id' in entry and 'Line' in entry:
+                            entry_id = entry['Id'] # YAML EntryID는 보통 int
+                            key = (filename, str(entry_id)) # 딕셔너리 키는 (filename, str(entry_id))
 
-                # YAML 파일 로드
-                with open(yaml_path, 'r', encoding='utf-8') as f:
-                    data = yaml.safe_load(f)
+                            if key in translations:
+                                translated_line = translations[key]
+                                if str(translated_line).strip() and entry['Line'] != translated_line:
+                                    entry['Line'] = str(translated_line)
+                                    file_updated_count += 1
+                    
+                    if file_updated_count > 0:
+                        with open(yaml_file_path, 'w', encoding='utf-8') as f:
+                            yaml.dump(data, f, allow_unicode=True, sort_keys=False)
+                        self.logger.info(f"YAML 파일 업데이트 완료: {yaml_file_path.name} ({file_updated_count} 항목)")
+                        updated_entries_count += file_updated_count
 
-                # 번역 적용
-                for _, row in group.iterrows():
-                    entry_id = int(row['EntryID'])
-                    translated = row['Translation']
+                except Exception as e:
+                    self.logger.error(f"YAML 파일 '{yaml_file_path}' 번역 적용 중 오류 발생: {e}")
 
-                    if pd.notna(translated) and str(translated).strip():
-                        for entry in data:
-                            if entry.get('Id') == entry_id:
-                                entry['Line'] = str(translated)
-                                break
+        # JSON 파일에 번역 적용
+        if apply_json:
+            json_files = list(source_path.rglob('*.json'))
+            self.logger.info(f"총 {len(json_files)}개의 JSON 파일에 번역 적용 시도...")
+            for json_file_path in json_files:
+                try:
+                    with open(json_file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
 
-                # YAML 저장
-                with open(yaml_path, 'w', encoding='utf-8') as f:
-                    yaml.dump(data, f, allow_unicode=True, sort_keys=False)
+                    if not isinstance(data, dict):
+                        self.logger.warning(f"JSON 파일 '{json_file_path.name}'의 형식이 예상과 다릅니다 (딕셔너리 아님). 건너뜁니다.")
+                        continue
 
-                self.logger.info(f"YAML 파일 업데이트 완료: {yaml_path}")
+                    filename = json_file_path.name
+                    file_updated_count = 0
+                    for entry_id_str, original_value in data.items():
+                        key = (filename, entry_id_str) # JSON EntryID는 보통 str
 
-            return True
+                        if key in translations:
+                            translated_value = translations[key]
+                            if str(translated_value).strip() and original_value != translated_value:
+                                data[entry_id_str] = str(translated_value)
+                                file_updated_count += 1
 
-        except Exception as e:
-            self.logger.error(f"CSV → YAML 적용 실패: {e}")
-            return False
+                    if file_updated_count > 0:
+                        with open(json_file_path, 'w', encoding='utf-8') as f:
+                            json.dump(data, f, ensure_ascii=False, indent=2)
+                        self.logger.info(f"JSON 파일 업데이트 완료: {json_file_path.name} ({file_updated_count} 항목)")
+                        updated_entries_count += file_updated_count
+
+                except Exception as e:
+                    self.logger.error(f"JSON 파일 '{json_file_path}' 번역 적용 중 오류 발생: {e}")
+
+        return updated_entries_count
 
     def _find_file_recursive(self, folder, filename):
         """

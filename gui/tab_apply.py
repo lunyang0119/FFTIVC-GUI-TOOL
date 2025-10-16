@@ -229,8 +229,8 @@ class TabApply(QWidget):
         self.workflow_group.addButton(self.radio_workflow_3, 3)
         self.workflow_group.addButton(self.radio_workflow_4, 4)
 
-        # 기본값: 모드 2 (일반적인 사용 케이스)
-        self.radio_workflow_2.setChecked(True)
+        # 기본값: 모드 1 (일반적인 사용 케이스)
+        self.radio_workflow_1.setChecked(True)
 
         # 워크플로우 변경 시 버튼 텍스트 업데이트
         self.workflow_group.buttonClicked.connect(self.on_workflow_changed)

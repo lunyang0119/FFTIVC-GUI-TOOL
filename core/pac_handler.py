@@ -166,22 +166,24 @@ class PACHandler:
             from core.csv_handler import CSVHandler
             csv_handler = CSVHandler()
 
-            # 총 단계 수 계산
-            total_steps = 5 if not skip_packing else 4
-            current_step = 1
-
-            # 1. CSV → YAML/JSON 적용
+            # 1. CSV 폴더에서 모든 번역 로드
             if callback:
-                callback(f"{current_step}/{total_steps}: CSV를 YAML/JSON에 적용 중...")
+                callback(f"1/5: 모든 CSV 파일에서 번역 데이터 로딩 중...")
+            
+            translations = csv_handler.load_all_translations(csv_folder)
+            if not translations:
+                self.logger.warning("CSV 파일에서 번역 데이터를 찾을 수 없습니다.")
+                # 번역 데이터가 없어도 나머지 프로세스는 진행될 수 있으므로 여기서 중단하지 않습니다.
+            else:
+                if callback:
+                    callback(f"번역 데이터 {len(translations)}개 로드 완료.")
 
-            csv_files = list(Path(csv_folder).glob('*.csv'))
-            for csv_file in csv_files:
-                # JSON 파일 처리
-                if apply_json:
-                    csv_handler.apply_csv_to_json(csv_file, source_folder)
-                # YAML 파일 처리
-                if apply_yaml:
-                    csv_handler.apply_csv_to_yaml(csv_file, source_folder)
+            # 2. 로드된 번역을 YAML/JSON 파일에 적용
+            if callback:
+                callback(f"2/5: CSV 번역을 YAML/JSON 파일에 적용 중...")
+            
+            updated_files_count = csv_handler.apply_translations_to_folder(source_folder, translations, apply_yaml, apply_json)
+            self.logger.info(f"{updated_files_count}개의 파일에 번역이 적용되었습니다.")
 
             if callback:
                 applied_types = []
@@ -191,57 +193,46 @@ class PACHandler:
                     applied_types.append("JSON")
                 callback(f"CSV 적용 완료 (대상: {', '.join(applied_types)})")
 
-            current_step += 1
-
-            # 2. YAML → PZD 변환
+            # 3. YAML → PZD 변환
             if apply_yaml:
                 if callback:
-                    callback(f"{current_step}/{total_steps}: YAML을 PZD로 변환 중...")
+                    callback(f"3/5: YAML을 PZD로 변환 중...")
 
                 yaml_count = self.converter.convert_yaml_to_pzd(source_folder)
 
                 if callback:
                     callback(f"YAML → PZD 변환 완료: {yaml_count}개")
             else:
-                if callback:
-                    callback(f"{current_step}/{total_steps}: YAML 변환 건너뛰기")
+                self.logger.info("YAML -> PZD 변환을 건너뜁니다.")
 
-            current_step += 1
-
-            # 3. JSON → NXD 변환
+            # 4. JSON → NXD 변환
             if apply_json:
                 if callback:
-                    callback(f"{current_step}/{total_steps}: JSON을 NXD로 변환 중...")
+                    callback(f"4/5: JSON을 NXD로 변환 중...")
 
                 json_count = self.converter.convert_json_to_nxd(source_folder)
 
                 if callback:
                     callback(f"JSON → NXD 변환 완료: {json_count}개")
             else:
-                if callback:
-                    callback(f"{current_step}/{total_steps}: JSON 변환 건너뛰기")
+                self.logger.info("JSON -> NXD 변환을 건너뜁니다.")
 
-            current_step += 1
-
-            # 4. 불필요한 파일 삭제
+            # 5. 불필요한 파일 삭제
             if delete_yaml_json or delete_other:
                 if callback:
-                    callback(f"{current_step}/{total_steps}: 불필요한 파일 삭제 중...")
+                    callback(f"5/5: 불필요한 파일 삭제 중...")
 
                 self._cleanup_files(source_folder, delete_yaml_json, delete_other)
 
                 if callback:
                     callback("파일 정리 완료")
             else:
-                if callback:
-                    callback(f"{current_step}/{total_steps}: 파일 정리 건너뛰기")
+                self.logger.info("파일 정리를 건너뜁니다.")
 
-            current_step += 1
-
-            # 5. PAC 팩킹
+            # 6. PAC 팩킹
             if not skip_packing:
                 if callback:
-                    callback(f"{current_step}/{total_steps}: PAC 파일 팩킹 중...")
+                    callback(f"최종 단계: PAC 파일 팩킹 중...")
 
                 if not self.pack(source_folder, output_pac, game, callback):
                     return False
