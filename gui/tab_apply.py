@@ -2,11 +2,14 @@
 탭 4: 번역 적용
 """
 from pathlib import Path
+import shutil
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QTextEdit, QProgressBar,
-                              QCheckBox, QFileDialog, QGroupBox, QMessageBox)
+                              QCheckBox, QFileDialog, QGroupBox, QMessageBox,
+                              QRadioButton, QButtonGroup)
 from PyQt6.QtCore import QThread, pyqtSignal
 from core.pac_handler import PACHandler
+from utils.i18n import t
 
 
 class ApplyWorker(QThread):
@@ -16,17 +19,16 @@ class ApplyWorker(QThread):
     progress_signal = pyqtSignal(int)
     finished_signal = pyqtSignal(bool, str)
 
-    def __init__(self, csv_folder, source_folder, output_pac, delete_yaml_json, delete_other,
-                 apply_yaml=True, apply_json=True, skip_packing=False):
+    def __init__(self, csv_folder, source_folder, output_pac, workflow_mode,
+                 delete_other, apply_yaml=True, apply_json=True):
         super().__init__()
         self.csv_folder = csv_folder
         self.source_folder = source_folder
         self.output_pac = output_pac
-        self.delete_yaml_json = delete_yaml_json
+        self.workflow_mode = workflow_mode
         self.delete_other = delete_other
         self.apply_yaml = apply_yaml
         self.apply_json = apply_json
-        self.skip_packing = skip_packing
 
     def run(self):
         """작업 실행"""
@@ -37,32 +39,111 @@ class ApplyWorker(QThread):
             def callback(msg):
                 self.log_signal.emit(msg)
 
+            # 워크플로우 모드에 따른 처리
+            working_folder = self.source_folder
+            delete_yaml_json_after = False
+            skip_packing = False
+
+            # 모드 1: 복사본 생성 → YAML/JSON 삭제 → 팩킹
+            if self.workflow_mode == 1:
+                callback("=" * 60)
+                callback(t("tab_apply.workflow_log_1"))
+                callback("=" * 60)
+
+                # 복사본 폴더 생성
+                source_path = Path(self.source_folder)
+                copy_folder = source_path.parent / f"{source_path.name}_copy"
+
+                callback(t("tab_apply.copy_creating", path=str(copy_folder)))
+                if copy_folder.exists():
+                    callback(t("tab_apply.copy_deleting_old"))
+                    shutil.rmtree(copy_folder)
+                shutil.copytree(self.source_folder, copy_folder)
+                working_folder = str(copy_folder)
+                callback(t("tab_apply.copy_complete"))
+
+                delete_yaml_json_after = True  # 변환 후 YAML/JSON 삭제
+                skip_packing = False  # 팩킹 수행
+
+            # 모드 2: YAML/JSON 삭제 → 팩킹
+            elif self.workflow_mode == 2:
+                callback("=" * 60)
+                callback(t("tab_apply.workflow_log_2"))
+                callback("=" * 60)
+
+                delete_yaml_json_after = True  # 변환 후 YAML/JSON 삭제
+                skip_packing = False  # 팩킹 수행
+
+            # 모드 3: 팩킹하지 않음 (YAML/JSON 유지)
+            elif self.workflow_mode == 3:
+                callback("=" * 60)
+                callback(t("tab_apply.workflow_log_3"))
+                callback("=" * 60)
+
+                delete_yaml_json_after = False  # YAML/JSON 유지
+                skip_packing = True  # 팩킹 안함
+
+            # 모드 4: 팩킹하지 않음 (YAML/JSON 삭제)
+            elif self.workflow_mode == 4:
+                callback("=" * 60)
+                callback(t("tab_apply.workflow_log_4"))
+                callback("=" * 60)
+
+                delete_yaml_json_after = True  # YAML/JSON 삭제
+                skip_packing = True  # 팩킹 안함
+
             # 번역 적용 및 팩킹 실행
             success = pac_handler.apply_translation_and_pack(
                 self.csv_folder,
-                self.source_folder,
+                working_folder,
                 self.output_pac,
-                self.delete_yaml_json,
-                self.delete_other,
+                delete_yaml_json=delete_yaml_json_after,
+                delete_other=self.delete_other,
                 apply_yaml=self.apply_yaml,
                 apply_json=self.apply_json,
-                skip_packing=self.skip_packing,
+                skip_packing=skip_packing,
                 game='fft',
                 callback=callback
             )
 
             if success:
                 self.progress_signal.emit(100)
-                if self.skip_packing:
-                    self.finished_signal.emit(True, "번역 적용이 완료되었습니다!")
-                else:
-                    self.finished_signal.emit(True, "번역 적용 및 팩킹이 완료되었습니다!")
+
+                # 성공 메시지
+                if self.workflow_mode == 1:
+                    self.finished_signal.emit(True, t("tab_apply.complete_with_pack_mode1", folder=working_folder, pac=self.output_pac))
+                elif self.workflow_mode == 2:
+                    self.finished_signal.emit(True, t("tab_apply.complete_with_pack_mode2", pac=self.output_pac))
+                elif self.workflow_mode == 3:
+                    self.finished_signal.emit(True, t("tab_apply.complete_no_pack_mode3", folder=working_folder))
+                elif self.workflow_mode == 4:
+                    self.finished_signal.emit(True, t("tab_apply.complete_no_pack_mode4", folder=working_folder))
             else:
-                self.finished_signal.emit(False, "작업 중 오류가 발생했습니다.")
+                self.finished_signal.emit(False, t("tab_apply.error_occurred"))
 
         except Exception as e:
-            self.log_signal.emit(f"오류 발생: {str(e)}")
-            self.finished_signal.emit(False, f"오류: {str(e)}")
+            self.log_signal.emit(t("tab_apply.error_with_detail", error=str(e)))
+            import traceback
+            self.log_signal.emit(traceback.format_exc())
+            self.finished_signal.emit(False, t("tab_apply.error_with_detail", error=str(e)))
+
+    def _delete_yaml_json(self, folder, callback):
+        """YAML/JSON 파일 삭제"""
+        folder_path = Path(folder)
+
+        # YAML 삭제
+        yaml_files = list(folder_path.rglob('*.yaml'))
+        for yaml_file in yaml_files:
+            yaml_file.unlink()
+        if yaml_files:
+            callback(t("tab_apply.yaml_deleted", count=len(yaml_files)))
+
+        # JSON 삭제
+        json_files = list(folder_path.rglob('*.json'))
+        for json_file in json_files:
+            json_file.unlink()
+        if json_files:
+            callback(t("tab_apply.json_deleted", count=len(json_files)))
 
 
 class TabApply(QWidget):
@@ -78,93 +159,114 @@ class TabApply(QWidget):
         layout = QVBoxLayout()
 
         # CSV 폴더 선택
-        group_csv = QGroupBox("번역된 CSV 파일")
+        group_csv = QGroupBox(t("tab_apply.csv_folder"))
         layout_csv = QHBoxLayout()
         self.csv_folder_edit = QLineEdit()
         self.csv_folder_edit.setReadOnly(True)
-        self.csv_folder_edit.setPlaceholderText("번역이 완료된 CSV 파일이 있는 폴더")
-        btn_select_csv = QPushButton("폴더 선택")
+        self.csv_folder_edit.setPlaceholderText(t("tab_apply.select_csv"))
+        btn_select_csv = QPushButton(t("tab_apply.select_folder"))
         btn_select_csv.clicked.connect(self.select_csv_folder)
-        layout_csv.addWidget(QLabel("CSV 폴더:"))
+        layout_csv.addWidget(QLabel(t("tab_apply.csv_folder_label")))
         layout_csv.addWidget(self.csv_folder_edit)
         layout_csv.addWidget(btn_select_csv)
         group_csv.setLayout(layout_csv)
         layout.addWidget(group_csv)
 
         # YAML/JSON 폴더 선택
-        group_source = QGroupBox("원본 YAML/JSON 파일")
+        group_source = QGroupBox(t("tab_apply.source_folder"))
         layout_source = QHBoxLayout()
         self.source_folder_edit = QLineEdit()
         self.source_folder_edit.setReadOnly(True)
-        self.source_folder_edit.setPlaceholderText("언팩된 YAML/JSON 파일이 있는 폴더")
-        btn_select_source = QPushButton("폴더 선택")
+        self.source_folder_edit.setPlaceholderText(t("tab_apply.select_source"))
+        btn_select_source = QPushButton(t("tab_apply.select_folder"))
         btn_select_source.clicked.connect(self.select_source_folder)
-        layout_source.addWidget(QLabel("원본 폴더:"))
+        layout_source.addWidget(QLabel(t("tab_apply.source_folder_label")))
         layout_source.addWidget(self.source_folder_edit)
         layout_source.addWidget(btn_select_source)
         group_source.setLayout(layout_source)
         layout.addWidget(group_source)
 
         # 출력 폴더 선택
-        group_output = QGroupBox("최종 PAC 파일 저장 위치")
+        group_output = QGroupBox(t("tab_apply.output_folder"))
         layout_output = QHBoxLayout()
         self.output_folder_edit = QLineEdit()
         self.output_folder_edit.setReadOnly(True)
-        self.output_folder_edit.setPlaceholderText("팩킹된 PAC 파일이 저장될 폴더")
-        btn_select_output = QPushButton("폴더 선택")
+        self.output_folder_edit.setPlaceholderText(t("tab_apply.select_output"))
+        btn_select_output = QPushButton(t("tab_apply.select_folder"))
         btn_select_output.clicked.connect(self.select_output_folder)
-        layout_output.addWidget(QLabel("출력 폴더:"))
+        layout_output.addWidget(QLabel(t("tab_apply.output_folder_label")))
         layout_output.addWidget(self.output_folder_edit)
         layout_output.addWidget(btn_select_output)
         group_output.setLayout(layout_output)
         layout.addWidget(group_output)
 
-        # 처리 옵션
-        group_options = QGroupBox("처리 옵션")
-        layout_options = QVBoxLayout()
-
-        # CSV 적용 대상 선택
-        layout_options.addWidget(QLabel("CSV 적용 대상:"))
-        layout_target = QHBoxLayout()
-        self.check_apply_yaml = QCheckBox("YAML 파일에 적용")
+        # === 옵션 1: CSV 번역 적용 대상 ===
+        group_apply = QGroupBox(t("tab_apply.apply_target_section"))
+        layout_apply = QHBoxLayout()
+        self.check_apply_yaml = QCheckBox(t("tab_apply.apply_yaml"))
         self.check_apply_yaml.setChecked(True)
-        self.check_apply_json = QCheckBox("JSON 파일에 적용")
+        self.check_apply_json = QCheckBox(t("tab_apply.apply_json"))
         self.check_apply_json.setChecked(True)
-        layout_target.addWidget(self.check_apply_yaml)
-        layout_target.addWidget(self.check_apply_json)
-        layout_options.addLayout(layout_target)
+        layout_apply.addWidget(self.check_apply_yaml)
+        layout_apply.addWidget(self.check_apply_json)
+        layout_apply.addStretch()
+        group_apply.setLayout(layout_apply)
+        layout.addWidget(group_apply)
 
-        # 패킹 옵션
-        self.check_skip_packing = QCheckBox("패킹하지 않고 번역만 적용")
-        self.check_skip_packing.setChecked(False)
-        self.check_skip_packing.stateChanged.connect(self.on_skip_packing_changed)
-        layout_options.addWidget(self.check_skip_packing)
+        # === 옵션 2: 팩킹 워크플로우 ===
+        group_workflow = QGroupBox(t("tab_apply.workflow_section"))
+        layout_workflow = QVBoxLayout()
 
-        # 파일 삭제 옵션
-        self.check_delete_yaml_json = QCheckBox("변환 후 YAML/JSON 삭제 (NXD/PZD만 남김)")
-        self.check_delete_yaml_json.setChecked(True)
-        self.check_delete_other = QCheckBox("기타 파일 자동 삭제 (NXD/PZD 이외)")
+        self.workflow_group = QButtonGroup()
+
+        self.radio_workflow_1 = QRadioButton(t("tab_apply.workflow_mode_1"))
+        self.radio_workflow_2 = QRadioButton(t("tab_apply.workflow_mode_2"))
+        self.radio_workflow_3 = QRadioButton(t("tab_apply.workflow_mode_3"))
+        self.radio_workflow_4 = QRadioButton(t("tab_apply.workflow_mode_4"))
+
+        self.workflow_group.addButton(self.radio_workflow_1, 1)
+        self.workflow_group.addButton(self.radio_workflow_2, 2)
+        self.workflow_group.addButton(self.radio_workflow_3, 3)
+        self.workflow_group.addButton(self.radio_workflow_4, 4)
+
+        # 기본값: 모드 2 (일반적인 사용 케이스)
+        self.radio_workflow_2.setChecked(True)
+
+        # 워크플로우 변경 시 버튼 텍스트 업데이트
+        self.workflow_group.buttonClicked.connect(self.on_workflow_changed)
+
+        layout_workflow.addWidget(self.radio_workflow_1)
+        layout_workflow.addWidget(self.radio_workflow_2)
+        layout_workflow.addWidget(self.radio_workflow_3)
+        layout_workflow.addWidget(self.radio_workflow_4)
+
+        # 워크플로우 설명
+        workflow_info = QLabel(t("tab_apply.workflow_desc"))
+        workflow_info.setStyleSheet("color: #666; font-size: 10px; margin-top: 5px;")
+        layout_workflow.addWidget(workflow_info)
+
+        group_workflow.setLayout(layout_workflow)
+        layout.addWidget(group_workflow)
+
+        # === 옵션 3: 추가 옵션 ===
+        group_extra = QGroupBox(t("tab_apply.extra_options_section"))
+        layout_extra = QVBoxLayout()
+
+        self.check_delete_other = QCheckBox(t("tab_apply.delete_other"))
         self.check_delete_other.setChecked(False)
-        layout_options.addWidget(self.check_delete_yaml_json)
-        layout_options.addWidget(self.check_delete_other)
+        layout_extra.addWidget(self.check_delete_other)
 
-        # 안내 메시지
-        info_label = QLabel(
-            "참고:\n"
-            "- YAML/JSON 중 하나만 선택하여 적용할 수 있습니다.\n"
-            "- '패킹하지 않고 번역만 적용'을 선택하면 NXD/PZD 변환 후 팩킹을 건너뜁니다.\n"
-            "- YAML/JSON 파일은 중간 파일이므로 팩킹 후 삭제를 권장합니다.\n"
-            "- 최종 PAC 파일 저장 위치에 원본 YAML/JSON폴더와 같은 이름의 PAC 파일이 있으면 덮어쓸 수 있는 위험이 있습니다."
-        )
-        info_label.setStyleSheet("color: #666; font-size: 10px;")
-        layout_options.addWidget(info_label)
+        extra_info = QLabel(t("tab_apply.delete_other_warning"))
+        extra_info.setStyleSheet("color: #d9534f; font-size: 10px;")
+        layout_extra.addWidget(extra_info)
 
-        group_options.setLayout(layout_options)
-        layout.addWidget(group_options)
+        group_extra.setLayout(layout_extra)
+        layout.addWidget(group_extra)
 
         # 실행 버튼
-        self.btn_start = QPushButton("번역 적용 및 팩킹")
+        self.btn_start = QPushButton(t("tab_apply.button_start_pack"))
         self.btn_start.clicked.connect(self.start_apply)
+        self.btn_start.setStyleSheet("font-size: 14px; padding: 8px; font-weight: bold;")
         layout.addWidget(self.btn_start)
 
         # 진행 상태
@@ -175,40 +277,47 @@ class TabApply(QWidget):
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setMaximumHeight(200)
-        layout.addWidget(QLabel("로그:"))
+        layout.addWidget(QLabel(t("tab_apply.log")))
         layout.addWidget(self.log_text)
 
         self.setLayout(layout)
 
-    def on_skip_packing_changed(self, state):
-        """패킹 건너뛰기 옵션 변경 시"""
-        if self.check_skip_packing.isChecked():
-            self.btn_start.setText("번역 적용 (패킹 안함)")
-            self.output_folder_edit.setEnabled(False)
-        else:
-            self.btn_start.setText("번역 적용 및 팩킹")
-            self.output_folder_edit.setEnabled(True)
+        # 초기 버튼 텍스트 설정
+        self.update_button_text()
+
+    def on_workflow_changed(self):
+        """워크플로우 모드 변경 시 호출"""
+        self.update_button_text()
+
+    def update_button_text(self):
+        """워크플로우 모드에 따라 버튼 텍스트 업데이트"""
+        workflow_mode = self.workflow_group.checkedId()
+
+        if workflow_mode in [1, 2]:
+            self.btn_start.setText(t("tab_apply.button_start_pack"))
+        elif workflow_mode in [3, 4]:
+            self.btn_start.setText(t("tab_apply.button_start_no_pack"))
 
     def select_csv_folder(self):
         """CSV 폴더 선택"""
-        folder_path = QFileDialog.getExistingDirectory(self, "CSV 폴더 선택")
+        folder_path = QFileDialog.getExistingDirectory(self, t("tab_apply.csv_folder"))
         if folder_path:
             self.csv_folder_edit.setText(folder_path)
-            self.add_log(f"CSV 폴더 선택됨: {folder_path}")
+            self.add_log(t("tab_apply.folder_selected", path=folder_path))
 
     def select_source_folder(self):
         """원본 폴더 선택"""
-        folder_path = QFileDialog.getExistingDirectory(self, "원본 폴더 선택")
+        folder_path = QFileDialog.getExistingDirectory(self, t("tab_apply.source_folder"))
         if folder_path:
             self.source_folder_edit.setText(folder_path)
-            self.add_log(f"원본 폴더 선택됨: {folder_path}")
+            self.add_log(t("tab_apply.folder_selected", path=folder_path))
 
     def select_output_folder(self):
         """출력 폴더 선택"""
-        folder_path = QFileDialog.getExistingDirectory(self, "출력 폴더 선택")
+        folder_path = QFileDialog.getExistingDirectory(self, t("tab_apply.output_folder"))
         if folder_path:
             self.output_folder_edit.setText(folder_path)
-            self.add_log(f"출력 폴더 선택됨: {folder_path}")
+            self.add_log(t("tab_apply.folder_selected", path=folder_path))
 
     def start_apply(self):
         """번역 적용 및 팩킹 시작"""
@@ -218,55 +327,55 @@ class TabApply(QWidget):
         output_folder = self.output_folder_edit.text()
 
         if not csv_folder:
-            QMessageBox.warning(self, "입력 오류", "CSV 폴더를 선택해주세요.")
+            QMessageBox.warning(self, t("common.error"), t("tab_apply.error_no_csv"))
             return
 
         if not source_folder:
-            QMessageBox.warning(self, "입력 오류", "원본 YAML/JSON 폴더를 선택해주세요.")
+            QMessageBox.warning(self, t("common.error"), t("tab_apply.error_no_source"))
             return
 
         # CSV 적용 대상 검증
         if not self.check_apply_yaml.isChecked() and not self.check_apply_json.isChecked():
-            QMessageBox.warning(self, "입력 오류", "최소한 YAML 또는 JSON 중 하나는 선택해야 합니다.")
+            QMessageBox.warning(self, t("common.error"), t("tab_apply.error_no_target"))
             return
 
-        # 패킹하지 않는 경우 출력 폴더 검증 건너뛰기
-        skip_packing = self.check_skip_packing.isChecked()
-        if not skip_packing:
-            if not output_folder:
-                QMessageBox.warning(self, "입력 오류", "출력 폴더를 선택해주세요.")
-                return
-
         if not Path(csv_folder).exists():
-            QMessageBox.warning(self, "폴더 오류", f"폴더를 찾을 수 없습니다:\n{csv_folder}")
+            QMessageBox.warning(self, t("common.error"), t("tab_apply.error_folder_not_found", path=csv_folder))
             return
 
         if not Path(source_folder).exists():
-            QMessageBox.warning(self, "폴더 오류", f"폴더를 찾을 수 없습니다:\n{source_folder}")
+            QMessageBox.warning(self, t("common.error"), t("tab_apply.error_folder_not_found", path=source_folder))
             return
 
-        # 출력 PAC 파일 경로 생성 (패킹하는 경우만)
+        # 워크플로우 모드 가져오기
+        workflow_mode = self.workflow_group.checkedId()
+
+        # 모드 1, 2는 팩킹하므로 출력 폴더 필요
+        if workflow_mode in [1, 2]:
+            if not output_folder:
+                QMessageBox.warning(self, t("common.error"), t("tab_apply.error_no_output_mode12"))
+                return
+
+        # 출력 PAC 파일 경로 생성 (모드 1, 2만)
         output_pac = None
-        if not skip_packing:
-            # 원본 폴더 이름을 PAC 파일명으로 사용
+        if workflow_mode in [1, 2]:
             source_folder_name = Path(source_folder).name
             output_pac = Path(output_folder) / f"{source_folder_name}.pac"
 
         # UI 상태 변경
         self.btn_start.setEnabled(False)
         self.progress_bar.setValue(0)
-        self.add_log("번역 적용 및 팩킹 시작...")
+        self.add_log(t("tab_apply.start_apply"))
 
         # 워커 스레드 생성 및 시작
         self.worker = ApplyWorker(
             csv_folder,
             source_folder,
             str(output_pac) if output_pac else None,
-            self.check_delete_yaml_json.isChecked(),
+            workflow_mode,
             self.check_delete_other.isChecked(),
             apply_yaml=self.check_apply_yaml.isChecked(),
-            apply_json=self.check_apply_json.isChecked(),
-            skip_packing=skip_packing
+            apply_json=self.check_apply_json.isChecked()
         )
 
         # 시그널 연결
@@ -283,9 +392,9 @@ class TabApply(QWidget):
         self.btn_start.setEnabled(True)
 
         if success:
-            QMessageBox.information(self, "완료", message)
+            QMessageBox.information(self, t("common.completed"), message)
         else:
-            QMessageBox.critical(self, "오류", message)
+            QMessageBox.critical(self, t("common.error"), message)
 
         self.worker = None
 

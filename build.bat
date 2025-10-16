@@ -65,6 +65,21 @@ if exist "TROUBLESHOOTING.md" (
     echo TROUBLESHOOTING.md 복사 완료
 )
 
+REM languages 폴더 확인 및 복사 (백업용)
+REM .spec 파일에 이미 포함되어 있지만, 혹시 모를 경우를 대비해 수동 복사
+if exist "languages\en.json" (
+    if not exist "dist\FFT_Translation_Tool\_internal\languages" (
+        mkdir "dist\FFT_Translation_Tool\_internal\languages"
+    )
+    copy "languages\en.json" "dist\FFT_Translation_Tool\_internal\languages\" > nul 2>&1
+    copy "languages\ko.json" "dist\FFT_Translation_Tool\_internal\languages\" > nul 2>&1
+    if exist "dist\FFT_Translation_Tool\_internal\languages\en.json" (
+        echo languages 폴더 확인 완료
+    ) else (
+        echo WARNING: languages 파일 복사 실패!
+    )
+)
+
 echo.
 echo ====================================
 echo 빌드 완료!

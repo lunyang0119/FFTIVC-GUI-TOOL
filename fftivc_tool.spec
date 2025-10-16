@@ -8,6 +8,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('config.json', '.'),
+        ('languages', 'languages'),  # languages 폴더 포함
     ],
     hiddenimports=[
         'PyQt6.QtCore',

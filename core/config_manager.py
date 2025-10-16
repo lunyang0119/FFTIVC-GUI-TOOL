@@ -40,6 +40,7 @@ class ConfigManager:
     def _get_default_config(self):
         """기본 설정 반환"""
         return {
+            "language": "ko",
             "ff16tools_path": "",
             "ffttic_nxdtext_path": "",
             "default_game_folder": "",
@@ -113,6 +114,14 @@ class ConfigManager:
     def set_last_used_path(self, path_type, path):
         """마지막으로 사용한 경로 설정"""
         self.set(f'last_used_paths.{path_type}', path)
+
+    def get_language(self):
+        """언어 설정 반환"""
+        return self.get('language', 'ko')
+
+    def set_language(self, lang_code):
+        """언어 설정"""
+        self.set('language', lang_code)
 
     def _auto_detect_tools(self):
         """외부 도구 자동 탐지"""

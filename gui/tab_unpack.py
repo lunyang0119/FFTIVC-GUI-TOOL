@@ -1,12 +1,11 @@
-"""
-탭 1: PAC 변환
-"""
 from pathlib import Path
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QLineEdit, QCheckBox, QTextEdit,
                               QProgressBar, QFileDialog, QGroupBox, QMessageBox)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from core.pac_handler import PACHandler
+from utils.i18n import t
+
 
 
 class UnpackWorker(QThread):
@@ -130,17 +129,17 @@ class TabUnpack(QWidget):
         layout = QVBoxLayout()
 
         # 원본 게임 파일 선택
-        group_input = QGroupBox("원본 게임 파일")
+        group_input = QGroupBox(t("tab_unpack.title"))
         layout_input = QVBoxLayout()
 
         # 파일 선택
         layout_file = QHBoxLayout()
         self.input_file_edit = QLineEdit()
         self.input_file_edit.setReadOnly(True)
-        self.input_file_edit.setPlaceholderText("PAC 파일을 선택하세요")
-        btn_select_file = QPushButton("파일 선택")
+        self.input_file_edit.setPlaceholderText(t("tab_unpack.select_pac"))
+        btn_select_file = QPushButton(t("common.select_file"))
         btn_select_file.clicked.connect(self.select_input_file)
-        layout_file.addWidget(QLabel("PAC 파일:"))
+        layout_file.addWidget(QLabel(t("tab_unpack.pac_file")))
         layout_file.addWidget(self.input_file_edit)
         layout_file.addWidget(btn_select_file)
         layout_input.addLayout(layout_file)
@@ -149,8 +148,8 @@ class TabUnpack(QWidget):
         layout_folder = QHBoxLayout()
         self.input_folder_edit = QLineEdit()
         self.input_folder_edit.setReadOnly(True)
-        self.input_folder_edit.setPlaceholderText("또는 폴더를 선택하세요")
-        btn_select_folder = QPushButton("폴더 선택")
+        self.input_folder_edit.setPlaceholderText("또는 PAC 파일이 있는 폴더를 선택하세요")
+        btn_select_folder = QPushButton(t("common.select_folder"))
         btn_select_folder.clicked.connect(self.select_input_folder)
         layout_folder.addWidget(QLabel("폴더:"))
         layout_folder.addWidget(self.input_folder_edit)
@@ -165,21 +164,21 @@ class TabUnpack(QWidget):
         layout_output = QHBoxLayout()
         self.output_folder_edit = QLineEdit()
         self.output_folder_edit.setReadOnly(True)
-        self.output_folder_edit.setPlaceholderText("언팩된 파일이 저장될 폴더")
-        btn_select_output = QPushButton("폴더 선택")
+        self.output_folder_edit.setPlaceholderText(t("tab_unpack.select_output"))
+        btn_select_output = QPushButton(t("common.select_folder"))
         btn_select_output.clicked.connect(self.select_output_folder)
-        layout_output.addWidget(QLabel("출력 폴더:"))
+        layout_output.addWidget(QLabel(t("tab_unpack.output_folder")))
         layout_output.addWidget(self.output_folder_edit)
         layout_output.addWidget(btn_select_output)
         group_output.setLayout(layout_output)
         layout.addWidget(group_output)
 
         # 추가 변환 옵션
-        group_options = QGroupBox("추가 변환 옵션")
+        group_options = QGroupBox(t("tab_unpack.convert_options"))
         layout_options = QVBoxLayout()
-        self.check_convert_nxd = QCheckBox("NXD 파일 변환 (ffttic-nxdtext 사용)")
+        self.check_convert_nxd = QCheckBox(t("tab_unpack.convert_nxd"))
         self.check_convert_nxd.setChecked(True)
-        self.check_convert_pzd = QCheckBox("PZD 파일 변환 (FF16Tools 사용)")
+        self.check_convert_pzd = QCheckBox(t("tab_unpack.convert_pzd"))
         self.check_convert_pzd.setChecked(True)
         layout_options.addWidget(self.check_convert_nxd)
         layout_options.addWidget(self.check_convert_pzd)
@@ -187,18 +186,18 @@ class TabUnpack(QWidget):
         layout.addWidget(group_options)
 
         # 실행 버튼
-        self.btn_start = QPushButton("언팩 및 변환 시작")
+        self.btn_start = QPushButton(t("tab_unpack.start_unpack"))
         self.btn_start.clicked.connect(self.start_unpack)
         layout.addWidget(self.btn_start)
 
         # 독립 변환 기능
-        group_standalone = QGroupBox("독립 변환 기능 (언팩 없이 변환만 수행)")
+        group_standalone = QGroupBox("독립 변환 기능 (언팩 없이 변환만 수행)\n(출력 폴더로 지정된 곳에서 변환합니다.)")
         layout_standalone = QHBoxLayout()
 
-        self.btn_pzd_to_yaml = QPushButton("PZD → YAML 변환")
+        self.btn_pzd_to_yaml = QPushButton(t("tab_unpack.convert_pzd"))
         self.btn_pzd_to_yaml.clicked.connect(self.convert_pzd_to_yaml)
 
-        self.btn_nxd_to_json = QPushButton("NXD → JSON 변환")
+        self.btn_nxd_to_json = QPushButton(t("tab_unpack.convert_nxd"))
         self.btn_nxd_to_json.clicked.connect(self.convert_nxd_to_json)
 
         layout_standalone.addWidget(self.btn_pzd_to_yaml)
@@ -214,7 +213,7 @@ class TabUnpack(QWidget):
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setMaximumHeight(200)
-        layout.addWidget(QLabel("로그:"))
+        layout.addWidget(QLabel(t("tab_unpack.log")))
         layout.addWidget(self.log_text)
 
         self.setLayout(layout)
@@ -222,30 +221,30 @@ class TabUnpack(QWidget):
     def select_input_file(self):
         """입력 파일 선택"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "PAC 파일 선택", "", "PAC Files (*.pac);;All Files (*)"
+            self, t("tab_unpack.select_pac"), "", "PAC Files (*.pac);;All Files (*)"
         )
         if file_path:
             self.input_file_edit.setText(file_path)
             self.input_folder_edit.clear()
-            self.add_log(f"파일 선택됨: {file_path}")
+            self.add_log(t("tab_unpack.pac_selected").format(path=file_path))
 
             # 출력 폴더 자동 설정
             self._auto_set_output_folder(file_path)
 
     def select_input_folder(self):
         """입력 폴더 선택"""
-        folder_path = QFileDialog.getExistingDirectory(self, "폴더 선택")
+        folder_path = QFileDialog.getExistingDirectory(self, t("common.select_folder"))
         if folder_path:
             self.input_folder_edit.setText(folder_path)
             self.input_file_edit.clear()
-            self.add_log(f"폴더 선택됨: {folder_path}")
+            self.add_log(t("tab_unpack.folder_selected").format(path=folder_path))
 
     def select_output_folder(self):
         """출력 폴더 선택"""
-        folder_path = QFileDialog.getExistingDirectory(self, "출력 폴더 선택")
+        folder_path = QFileDialog.getExistingDirectory(self, t("tab_unpack.select_output"))
         if folder_path:
             self.output_folder_edit.setText(folder_path)
-            self.add_log(f"출력 폴더 선택됨: {folder_path}")
+            self.add_log(t("tab_unpack.folder_selected").format(path=folder_path))
 
     def start_unpack(self):
         """언팩 및 변환 시작"""
@@ -254,21 +253,21 @@ class TabUnpack(QWidget):
         output_folder = self.output_folder_edit.text()
 
         if not pac_file:
-            QMessageBox.warning(self, "입력 오류", "PAC 파일을 선택해주세요.")
+            QMessageBox.warning(self, t("common.warning"), t("tab_unpack.error_no_pac"))
             return
 
         if not output_folder:
-            QMessageBox.warning(self, "입력 오류", "출력 폴더를 선택해주세요.")
+            QMessageBox.warning(self, t("common.warning"), t("tab_unpack.error_no_output"))
             return
 
         if not Path(pac_file).exists():
-            QMessageBox.warning(self, "파일 오류", f"파일을 찾을 수 없습니다:\n{pac_file}")
+            QMessageBox.warning(self, t("common.warning"), t("tab_unpack.error_pac_not_found").format(path=pac_file))
             return
 
         # UI 상태 변경
         self.btn_start.setEnabled(False)
         self.progress_bar.setValue(0)
-        self.add_log("언팩 및 변환 시작...")
+        self.add_log(t("tab_unpack.start_unpack"))
 
         # 워커 스레드 생성 및 시작
         self.worker = UnpackWorker(
@@ -292,9 +291,9 @@ class TabUnpack(QWidget):
         self.btn_start.setEnabled(True)
 
         if success:
-            QMessageBox.information(self, "완료", message)
+            QMessageBox.information(self, t("common.completed"), message)
         else:
-            QMessageBox.critical(self, "오류", message)
+            QMessageBox.critical(self, t("common.error"), message)
 
         self.worker = None
 
@@ -311,18 +310,18 @@ class TabUnpack(QWidget):
         output_folder = tool_finder.get_output_folder_from_pac(pac_file_path)
 
         self.output_folder_edit.setText(output_folder)
-        self.add_log(f"출력 폴더 자동 설정됨: {output_folder}")
+        self.add_log(t("tab_unpack.folder_selected").format(path=output_folder))
 
     def convert_pzd_to_yaml(self):
         """PZD → YAML 독립 변환"""
         folder_path = self.input_folder_edit.text()
 
         if not folder_path:
-            QMessageBox.warning(self, "입력 오류", "변환할 파일이 있는 폴더를 선택해주세요.")
+            QMessageBox.warning(self, t("common.warning"), "변환할 파일이 있는 폴더를 선택해주세요.")
             return
 
         if not Path(folder_path).exists():
-            QMessageBox.warning(self, "폴더 오류", f"폴더를 찾을 수 없습니다:\n{folder_path}")
+            QMessageBox.warning(self, t("common.warning"), "폴더를 찾을 수 없습니다:\n{0}".format(folder_path))
             return
 
         # UI 상태 변경
@@ -346,11 +345,11 @@ class TabUnpack(QWidget):
         folder_path = self.input_folder_edit.text()
 
         if not folder_path:
-            QMessageBox.warning(self, "입력 오류", "변환할 파일이 있는 폴더를 선택해주세요.")
+            QMessageBox.warning(self, t("common.warning"), "변환할 파일이 있는 폴더를 선택해주세요.")
             return
 
         if not Path(folder_path).exists():
-            QMessageBox.warning(self, "폴더 오류", f"폴더를 찾을 수 없습니다:\n{folder_path}")
+            QMessageBox.warning(self, t("common.warning"), "폴더를 찾을 수 없습니다:\n{0}".format(folder_path))
             return
 
         # UI 상태 변경
@@ -373,15 +372,15 @@ class TabUnpack(QWidget):
         """변환 완료 시 호출"""
         self.add_log(message)
         if count > 0:
-            self.add_log(f"총 {count}개의 파일이 변환되었습니다.")
+            self.add_log("총 {0}개의 파일이 변환되었습니다.".format(count))
 
         self.btn_pzd_to_yaml.setEnabled(True)
         self.btn_nxd_to_json.setEnabled(True)
 
         if success:
-            QMessageBox.information(self, "완료", f"{message}\n총 {count}개 파일 변환")
+            QMessageBox.information(self, t("common.completed"), "{0}\n총 {1}개 파일 변환".format(message, count))
         else:
-            QMessageBox.critical(self, "오류", message)
+            QMessageBox.critical(self, t("common.error"), message)
 
         self.worker = None
 

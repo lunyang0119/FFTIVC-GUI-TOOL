@@ -206,8 +206,15 @@ class CSVHandler:
         try:
             df = pd.read_csv(csv_file, encoding='utf-8-sig')
 
+            # .json 확장자를 가진 파일만 필터링
+            json_rows = df[df['FileName'].str.endswith('.json', na=False)]
+
+            if json_rows.empty:
+                self.logger.info(f"CSV 파일에 JSON 대상 항목이 없음: {csv_file}")
+                return True
+
             # 파일별로 그룹화
-            for source_file, group in df.groupby('FileName'):
+            for source_file, group in json_rows.groupby('FileName'):
                 json_path = self._find_file_recursive(json_folder, source_file)
 
                 if not json_path:
@@ -252,8 +259,15 @@ class CSVHandler:
         try:
             df = pd.read_csv(csv_file, encoding='utf-8-sig')
 
+            # .yaml 확장자를 가진 파일만 필터링
+            yaml_rows = df[df['FileName'].str.endswith('.yaml', na=False)]
+
+            if yaml_rows.empty:
+                self.logger.info(f"CSV 파일에 YAML 대상 항목이 없음: {csv_file}")
+                return True
+
             # 파일별로 그룹화
-            for source_file, group in df.groupby('FileName'):
+            for source_file, group in yaml_rows.groupby('FileName'):
                 yaml_path = self._find_file_recursive(yaml_folder, source_file)
 
                 if not yaml_path:

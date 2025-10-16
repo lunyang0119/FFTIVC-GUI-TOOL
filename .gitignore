@@ -1,1 +1,7 @@
 CLAUDE.md
+.claude
+logs
+test_language_dialog.py
+core/__pycache__/
+gui/__pycache__
+utils/__pycache__
