@@ -8,6 +8,8 @@ readme는 아직 업데이트 중입니다.
 
 **오류가 많습니다! 감안하고 사용해주세요! 오류제보는 위에 적혀진 곳으로 받고 있습니다.**
 
+**There is also an English version. (Incomplete)**
+
 
 
 ## 주요 기능
