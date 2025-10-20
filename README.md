@@ -36,6 +36,7 @@ FF16Tools 실행을 위해 **.NET 9.0 Runtime**이 필요합니다.
 - **FF16Tools**: https://github.com/Nenkai/FF16Tools
   - `ff16tools/` 폴더
 - **ffttic-nxdtext**: https://github.com/mmatyas/ffttic-nxdtext/releases/tag/v1.0
+
 **반드시 1.0 버전을 다운로드 받으셔야 합니다!** 현재 호환성 이슈로 최신버전은 사용할 수 없습니다. (추후에 고칠 예정)
   - 프로그램 루트 폴더에 배치
   
@@ -98,4 +99,5 @@ releases에서 다운 받아 주세요.
 ## 라이선스
 
 MIT License
+
 
